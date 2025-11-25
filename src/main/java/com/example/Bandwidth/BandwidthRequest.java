@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class BandwidthRequest {
 
 	private String ipAddress;
+	private String interfaceName;
 }

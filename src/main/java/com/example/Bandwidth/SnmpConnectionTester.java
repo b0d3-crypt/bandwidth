@@ -23,7 +23,7 @@ public class SnmpConnectionTester {
 
 			CommunityTarget target = new CommunityTarget();
 			target.setCommunity(new OctetString(community));
-			target.setAddress(GenericAddress.parse("udp:" + ip + "/161"));
+			target.setAddress(GenericAddress.parse("udp:" + ip ));
 			target.setVersion(SnmpConstants.version2c);
 			target.setTimeout(2000);
 			target.setRetries(1);

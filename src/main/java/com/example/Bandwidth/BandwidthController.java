@@ -24,7 +24,7 @@ public class BandwidthController {
 	@Operation(description = "tráfego de banda para um endereço IP.")
 	public ResponseEntity<BandwidthResult> getBandwidth(@RequestBody BandwidthRequest request) {
 		try {
-			BandwidthResult result = bandwidthCalculator.calcular(request.getIpAddress());
+			BandwidthResult result = bandwidthCalculator.calcular(request);
 			return ResponseEntity.ok(result);
 		} catch (Exception e) {
 			e.printStackTrace();

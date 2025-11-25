@@ -12,31 +12,32 @@ import org.snmp4j.transport.DefaultUdpTransportMapping;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.HashMap;
 
 @Service
 public class BandwidthCalculator {
 
-	private static final int PORT = 161;
 	private static final String COMMUNITY = "public";
+	private static final String IF_IN_OCTETS = "1.3.6.1.2.1.2.2.1.10.";
+	private static final String IF_OUT_OCTETS = "1.3.6.1.2.1.2.2.1.16.";
+	private static HashMap<String, String> interfaceOctetsMap;
 
-	private static final String IF_IN_OCTETS = "1.3.6.1.2.1.2.2.1.10.2";
-	private static final String IF_OUT_OCTETS = "1.3.6.1.2.1.2.2.1.16.2";
+	public BandwidthResult calcular(BandwidthRequest request) throws Exception {
 
-	public BandwidthResult calcular(String host) throws Exception {
-
-		boolean isConnected = SnmpConnectionTester.testConnection(host, COMMUNITY);
+		boolean isConnected = SnmpConnectionTester.testConnection(request.getIpAddress(), COMMUNITY);
 
 		if (!isConnected) {
-			throw new RuntimeException("Não foi possível conectar ao host via SNMP: " + host);
+			throw new RuntimeException("Não foi possível conectar ao host via SNMP: " + request.getIpAddress());
 		}
+		setOctets(request.getInterfaceName());
 
-		long in1 = snmpGetCounter(IF_IN_OCTETS, host);
-		long out1 = snmpGetCounter(IF_OUT_OCTETS, host);
+		long in1 = snmpGetCounter(interfaceOctetsMap.get("in"), request.getIpAddress());
+		long out1 = snmpGetCounter(interfaceOctetsMap.get("out"), request.getIpAddress());
 
 		Thread.sleep(1000);
 
-		long in2 = snmpGetCounter(IF_IN_OCTETS, host);
-		long out2 = snmpGetCounter(IF_OUT_OCTETS, host);
+		long in2 = snmpGetCounter(interfaceOctetsMap.get("in"), request.getIpAddress());
+		long out2 = snmpGetCounter(interfaceOctetsMap.get("out"), request.getIpAddress());
 
 		double rxMbps = calcularMbps(in1, in2, 1);
 		double txMbps = calcularMbps(out1, out2, 1);
@@ -55,7 +56,7 @@ public class BandwidthCalculator {
 	}
 
 	private long snmpGetCounter(String oid, String host) throws Exception {
-		Address targetAddress = GenericAddress.parse("udp:" + host + "/" + PORT);
+		Address targetAddress = GenericAddress.parse("udp:" + host );
 		TransportMapping<?> transport = new DefaultUdpTransportMapping();
 		transport.listen();
 
@@ -79,5 +80,21 @@ public class BandwidthCalculator {
 		}
 
 		return event.getResponse().get(0).getVariable().toLong();
+	}
+
+	private void setOctets(String interfaceName) {
+		interfaceOctetsMap = new HashMap<>();
+		switch (interfaceName) {
+			case "ether1":
+				interfaceOctetsMap.put("in", IF_IN_OCTETS + 2);
+				interfaceOctetsMap.put("out", IF_OUT_OCTETS + 2);
+				break;
+			case "ether2":
+				interfaceOctetsMap.put("in", IF_IN_OCTETS + 3);
+				interfaceOctetsMap.put("out", IF_OUT_OCTETS + 3);
+				break;
+			default:
+				throw new IllegalArgumentException("Interface desconhecida: " + interfaceName);
+		}
 	}
 }
